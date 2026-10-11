@@ -346,8 +346,18 @@ struct LaunchpadView: View {
          }
     }
 
+    /// Launchpad behaviour: a click that no icon, button or field claimed closes the window.
+    /// The margin layers and the grid handle their own areas; this catches every spot in between
+    /// (below the last row, around the page indicator, inside the grid's insets).
+    private func dismissOnBackgroundTap() {
+        guard appStore.openFolder == nil, !appStore.isFolderNameEditing, !appStore.isSetting else { return }
+        AppDelegate.shared?.hideWindow()
+    }
+
     private var launchpadEventBoundView: some View {
         launchpadBaseView
+        .contentShape(Rectangle())
+        .onTapGesture { dismissOnBackgroundTap() }
         .sheet(isPresented: $appStore.isSetting) {
             SettingsView(appStore: appStore)
         }

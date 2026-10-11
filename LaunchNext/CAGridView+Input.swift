@@ -260,7 +260,9 @@ extension CAGridView {
         let location = convert(event.locationInWindow, from: nil)
         // print("🖱️ [CAGrid] mouseDown at \(location)")
 
-        if let (item, index) = itemAt(location) {
+        // An empty slot behaves like the blank area between cells: clicking it closes the
+        // window (as Launchpad did) instead of being treated as a press on an item.
+        if let (item, index) = itemAt(location), !item.isEmptySlot {
             // print("🖱️ [CAGrid] Hit item: \(item.name) at index \(index)")
             // Reopening a folder immediately after dismissal may be classified
             // as a double click by AppKit; it is still a complete open gesture.
@@ -1627,4 +1629,11 @@ extension CAGridView {
         return (items[globalIndex], globalIndex)
     }
 
+}
+
+private extension LaunchpadItem {
+    var isEmptySlot: Bool {
+        if case .empty = self { return true }
+        return false
+    }
 }

@@ -17,7 +17,7 @@ struct GestureConfiguration: Equatable {
     var minimumCloseLeadingGap: Double = 0.06
     var maximumCloseSupportingSpread: Double = 0.22
     var requiredConsecutiveMatches: Int = 2
-    var cooldownDuration: TimeInterval = 0.85
+    var cooldownDuration: TimeInterval = 0   // was 0.85: a spread right after a pinch was ignored. Re-arming already waits for the fingers to lift.
     var maximumCentroidDriftRatio: Double = 0.55
     var minimumBaselineScale: Double = 0.10
     var tapMaxDuration: TimeInterval = 0.20

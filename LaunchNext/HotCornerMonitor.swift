@@ -14,7 +14,7 @@ final class HotCornerMonitor {
     private var pendingTrigger: DispatchWorkItem?
     private var activeHotCornerID: String?
     private var cooldownUntil: Date?
-    private let cooldown: TimeInterval = 1.0
+    private let cooldown: TimeInterval = 0
     private let onTrigger: () -> Void
     private var configuration: Configuration
 
