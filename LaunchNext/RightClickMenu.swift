@@ -164,9 +164,12 @@ private func makeAppKitContextMenu(
                 item.image = descriptor.role == .destructive
                     ? redMenuSymbolImage(named: symbolName)
                     : NSImage(systemSymbolName: symbolName, accessibilityDescription: title)
+                // Local build fix: `preferredImageVisibility` exists only in the macOS 27 SDK (Xcode 27).
+                #if compiler(>=6.4)
                 if #available(macOS 27.0, *) {
                     item.preferredImageVisibility = .visible
                 }
+                #endif
             }
             if descriptor.role == .destructive {
                 item.attributedTitle = NSAttributedString(

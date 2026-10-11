@@ -298,6 +298,19 @@ struct LaunchpadView: View {
         }
     }
     
+    /// Local build fix (Xcode 26.5): this publisher chain used to sit inline in `body`,
+    /// where the Swift 6.3 type checker could not finish in reasonable time.
+    private var launchpadWindowResizePublisher: AnyPublisher<Notification, Never> {
+        NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)
+            .merge(with: NotificationCenter.default.publisher(for: NSWindow.didEndLiveResizeNotification))
+            .filter { notification in
+                guard let window = notification.object as? NSWindow else { return false }
+                return window === AppDelegate.shared?.launchpadWindow
+            }
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+
     var body: some View {
         launchpadEventBoundView
          .task(id: appStore.layoutRevealRequest?.id) {
@@ -396,13 +409,7 @@ struct LaunchpadView: View {
              guard (old == .unfiltered) != (new == .unfiltered) else { return }
              refreshBackgroundImage(reason: .settingsChanged)
          }
-         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)
-             .merge(with: NotificationCenter.default.publisher(for: NSWindow.didEndLiveResizeNotification))
-             .filter { notification in
-                 guard let window = notification.object as? NSWindow else { return false }
-                 return window === AppDelegate.shared?.launchpadWindow
-             }
-             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)) { notification in
+         .onReceive(launchpadWindowResizePublisher) { notification in
              guard appStore.backgroundImageEnabled, appStore.launchpadBackgroundStyle == .unfiltered,
                    let window = notification.object as? NSWindow,
                    window === AppDelegate.shared?.launchpadWindow, !window.inLiveResize else { return }
