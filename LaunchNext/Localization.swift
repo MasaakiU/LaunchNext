@@ -103,6 +103,7 @@ enum LocalizationKey: String {
     case hotCornerTriggerDelayTitle
     case hotCornerHitboxSizeTitle
     case hotCornerToggleWhenOpenTitle
+    case hotCornerCooldownTitle
     // Experimental gesture localization keys.
     // Remove these together with the gesture Settings/UI and LaunchNext/Gesture/
     // if the low-level multitouch feature is removed later.
@@ -110,6 +111,10 @@ enum LocalizationKey: String {
     case gestureSectionDescription
     case gestureEnabledTitle
     case gestureCloseOnPinchOutTitle
+    case gestureSpreadShowsDesktopTitle
+    case gestureSpreadShowsDesktopDescription
+    case gestureAcceptEvenSpreadTitle
+    case gestureCooldownTitle
     case gestureTapActionTitle
     case gestureFingerCountTitle
     case gestureFingerCountFour
@@ -697,6 +702,7 @@ final class LocalizationManager {
                 .hotCornerSectionDescription: "Open LaunchNext when the pointer reaches the selected screen corner.",
                 .hotCornerEnabledTitle: "Enable Hot Corner",
                 .hotCornerToggleWhenOpenTitle: "Close when already open",
+                .hotCornerCooldownTitle: "Cooldown after triggering",
                 .hotCornerPositionTitle: "Corner",
                 .hotCornerTriggerDelayTitle: "Trigger delay",
                 .hotCornerHitboxSizeTitle: "Trigger zone",
@@ -704,6 +710,10 @@ final class LocalizationManager {
                 .gestureSectionDescription: "Experimental trackpad pinch and tap gestures for LaunchNext.",
                 .gestureEnabledTitle: "Enable pinch gesture",
                 .gestureCloseOnPinchOutTitle: "Close with spread gesture",
+                .gestureSpreadShowsDesktopTitle: "Spread shows the desktop",
+                .gestureSpreadShowsDesktopDescription: "Launchpad style: while LaunchNext is closed, a spread shows the desktop and a pinch brings the windows back. Turn off the system's Show Desktop gesture in System Settings › Trackpad.",
+                .gestureAcceptEvenSpreadTitle: "Accept an even spread",
+                .gestureCooldownTitle: "Cooldown after a gesture",
                 .gestureTapActionTitle: "Tap gesture",
                 .gestureFingerCountTitle: "Gesture fingers",
                 .gestureFingerCountFour: "4 fingers",
@@ -1886,6 +1896,7 @@ final class LocalizationManager {
                 .hotCornerSectionDescription: "ポインタが選択した画面の角に達したら LaunchNext を開きます。",
                 .hotCornerEnabledTitle: "ホットコーナーを有効にする",
                 .hotCornerToggleWhenOpenTitle: "既に開いている場合は閉じる",
+                .hotCornerCooldownTitle: "発動後の待ち時間",
                 .hotCornerPositionTitle: "角",
                 .hotCornerTriggerDelayTitle: "発動遅延",
                 .hotCornerHitboxSizeTitle: "発動エリア",
@@ -1893,6 +1904,10 @@ final class LocalizationManager {
                 .gestureSectionDescription: "LaunchNext 用の実験的なトラックパッドのピンチとタップジェスチャーです。",
                 .gestureEnabledTitle: "ピンチジェスチャーを有効化",
                 .gestureCloseOnPinchOutTitle: "広げるジェスチャーで閉じる",
+                .gestureSpreadShowsDesktopTitle: "広げるジェスチャーでデスクトップを表示",
+                .gestureSpreadShowsDesktopDescription: "Launchpad 風: LaunchNext が閉じている時に広げるとデスクトップを表示し、つまむとウインドウが戻ります。システム設定 › トラックパッド の「デスクトップを表示」ジェスチャーはオフにしてください。",
+                .gestureAcceptEvenSpreadTitle: "均等に広げても閉じる",
+                .gestureCooldownTitle: "ジェスチャー後の待ち時間",
                 .gestureTapActionTitle: "タップジェスチャー",
                 .gestureFingerCountTitle: "ジェスチャーの指の本数",
                 .gestureFingerCountFour: "4本指",

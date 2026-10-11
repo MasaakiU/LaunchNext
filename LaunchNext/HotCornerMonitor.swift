@@ -7,6 +7,7 @@ final class HotCornerMonitor {
         var position: AppStore.HotCornerPosition
         var triggerDelay: TimeInterval
         var hitboxSize: CGFloat
+        var cooldown: TimeInterval
     }
 
     private var localMonitor: Any?
@@ -14,7 +15,6 @@ final class HotCornerMonitor {
     private var pendingTrigger: DispatchWorkItem?
     private var activeHotCornerID: String?
     private var cooldownUntil: Date?
-    private let cooldown: TimeInterval = 0
     private let onTrigger: () -> Void
     private var configuration: Configuration
 
@@ -93,7 +93,7 @@ final class HotCornerMonitor {
             guard let self else { return }
             guard self.configuration.isEnabled else { return }
             guard self.activeHotCornerID == hotCornerID else { return }
-            self.cooldownUntil = Date().addingTimeInterval(self.cooldown)
+            self.cooldownUntil = Date().addingTimeInterval(self.configuration.cooldown)
             self.onTrigger()
         }
         pendingTrigger = workItem

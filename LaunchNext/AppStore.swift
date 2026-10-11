@@ -407,11 +407,15 @@ final class AppStore: ObservableObject {
     static let hotCornerTriggerDelayKey = "hotCornerTriggerDelay"
     static let hotCornerHitboxSizeKey = "hotCornerHitboxSize"
     static let hotCornerToggleWhenOpenKey = "hotCornerToggleWhenOpen"
+    static let hotCornerCooldownKey = "hotCornerCooldown"
     // Experimental gesture persistence keys.
     // Safe to remove together with LaunchNext/Gesture/ and gesture UI wiring
     // if the private multitouch feature is dropped later.
     static let gestureEnabledKey = "gestureEnabled"
     static let gestureCloseOnPinchOutKey = "gestureCloseOnPinchOut"
+    static let gestureSpreadShowsDesktopKey = "gestureSpreadShowsDesktop"
+    static let gestureAcceptEvenSpreadKey = "gestureAcceptEvenSpread"
+    static let gestureCooldownKey = "gestureCooldown"
     static let gestureTapActionKey = "gestureTapAction"
     static let gestureFingerCountKey = "gestureFingerCount"
     static let gestureDeviceSelectionModeKey = "gestureDeviceSelectionMode"
@@ -488,6 +492,10 @@ final class AppStore: ObservableObject {
     static let hotCornerTriggerDelayRange: ClosedRange<Double> = 0...1.2
     static let hotCornerHitboxSizeRange: ClosedRange<Double> = 20...120
     static let defaultHotCornerTriggerDelay: Double = 0.25
+    static let hotCornerCooldownRange: ClosedRange<Double> = 0...1.5
+    static let defaultHotCornerCooldown: Double = 0
+    static let gestureCooldownRange: ClosedRange<Double> = 0...1.0
+    static let defaultGestureCooldown: Double = 0
     static let defaultHotCornerHitboxSize: Double = 50
     // private static let aiFeatureEnabledKey = "aiFeatureEnabled"
     // private static let aiOverlayHotKeyKey = "aiOverlayHotKeyConfiguration"
@@ -1083,6 +1091,8 @@ final class AppStore: ObservableObject {
         globalHotKey = Self.loadHotKeyConfiguration()
         gestureEnabled = UserDefaults.standard.object(forKey: Self.gestureEnabledKey) as? Bool ?? false
         gestureCloseOnPinchOut = UserDefaults.standard.object(forKey: Self.gestureCloseOnPinchOutKey) as? Bool ?? false
+        gestureSpreadShowsDesktop = UserDefaults.standard.object(forKey: Self.gestureSpreadShowsDesktopKey) as? Bool ?? false
+        gestureAcceptEvenSpread = UserDefaults.standard.object(forKey: Self.gestureAcceptEvenSpreadKey) as? Bool ?? true
         gestureTapAction = GestureTapAction(rawValue: UserDefaults.standard.string(forKey: Self.gestureTapActionKey) ?? "") ?? .off
         gestureFingerCount = GestureFingerCount(rawValue: UserDefaults.standard.integer(forKey: Self.gestureFingerCountKey)) ?? .four
         gestureDeviceSelectionMode = GestureDeviceSelectionMode(rawValue: UserDefaults.standard.string(forKey: Self.gestureDeviceSelectionModeKey) ?? "") ?? .automatic
@@ -1263,6 +1273,14 @@ final class AppStore: ObservableObject {
 
     private static func clampHotCornerTriggerDelay(_ value: Double) -> Double {
         min(max(value, hotCornerTriggerDelayRange.lowerBound), hotCornerTriggerDelayRange.upperBound)
+    }
+
+    private static func clampHotCornerCooldown(_ value: Double) -> Double {
+        min(max(value, hotCornerCooldownRange.lowerBound), hotCornerCooldownRange.upperBound)
+    }
+
+    private static func clampGestureCooldown(_ value: Double) -> Double {
+        min(max(value, gestureCooldownRange.lowerBound), gestureCooldownRange.upperBound)
     }
 
     private static func clampHotCornerHitboxSize(_ value: Double) -> Double {
@@ -2194,6 +2212,25 @@ final class AppStore: ObservableObject {
         }
     }
 
+    @Published var hotCornerCooldown: Double = {
+        let defaults = UserDefaults.standard
+        let stored = defaults.object(forKey: AppStore.hotCornerCooldownKey) as? Double
+        let clamped = AppStore.clampHotCornerCooldown(stored ?? AppStore.defaultHotCornerCooldown)
+        if stored == nil || stored != clamped {
+            defaults.set(clamped, forKey: AppStore.hotCornerCooldownKey)
+        }
+        return clamped
+    }() {
+        didSet {
+            let clamped = Self.clampHotCornerCooldown(hotCornerCooldown)
+            if hotCornerCooldown != clamped {
+                hotCornerCooldown = clamped
+                return
+            }
+            UserDefaults.standard.set(hotCornerCooldown, forKey: Self.hotCornerCooldownKey)
+        }
+    }
+
     @Published var hotCornerTriggerDelay: Double = {
         let defaults = UserDefaults.standard
         let stored = defaults.object(forKey: AppStore.hotCornerTriggerDelayKey) as? Double
@@ -2260,6 +2297,51 @@ final class AppStore: ObservableObject {
         didSet {
             guard gestureEnabled != oldValue else { return }
             UserDefaults.standard.set(gestureEnabled, forKey: Self.gestureEnabledKey)
+        }
+    }
+
+    @Published var gestureSpreadShowsDesktop: Bool = {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: AppStore.gestureSpreadShowsDesktopKey) == nil {
+            defaults.set(false, forKey: AppStore.gestureSpreadShowsDesktopKey)
+        }
+        return defaults.bool(forKey: AppStore.gestureSpreadShowsDesktopKey)
+    }() {
+        didSet {
+            guard gestureSpreadShowsDesktop != oldValue else { return }
+            UserDefaults.standard.set(gestureSpreadShowsDesktop, forKey: Self.gestureSpreadShowsDesktopKey)
+        }
+    }
+
+    @Published var gestureAcceptEvenSpread: Bool = {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: AppStore.gestureAcceptEvenSpreadKey) == nil {
+            defaults.set(true, forKey: AppStore.gestureAcceptEvenSpreadKey)
+        }
+        return defaults.bool(forKey: AppStore.gestureAcceptEvenSpreadKey)
+    }() {
+        didSet {
+            guard gestureAcceptEvenSpread != oldValue else { return }
+            UserDefaults.standard.set(gestureAcceptEvenSpread, forKey: Self.gestureAcceptEvenSpreadKey)
+        }
+    }
+
+    @Published var gestureCooldown: Double = {
+        let defaults = UserDefaults.standard
+        let stored = defaults.object(forKey: AppStore.gestureCooldownKey) as? Double
+        let clamped = AppStore.clampGestureCooldown(stored ?? AppStore.defaultGestureCooldown)
+        if stored == nil || stored != clamped {
+            defaults.set(clamped, forKey: AppStore.gestureCooldownKey)
+        }
+        return clamped
+    }() {
+        didSet {
+            let clamped = Self.clampGestureCooldown(gestureCooldown)
+            if gestureCooldown != clamped {
+                gestureCooldown = clamped
+                return
+            }
+            UserDefaults.standard.set(gestureCooldown, forKey: Self.gestureCooldownKey)
         }
     }
 
@@ -2966,6 +3048,9 @@ final class AppStore: ObservableObject {
         let storedHotCornerHitboxSize = defaults.object(forKey: Self.hotCornerHitboxSizeKey) as? Double ?? Self.defaultHotCornerHitboxSize
         let clampedHotCornerHitboxSize = Self.clampHotCornerHitboxSize(storedHotCornerHitboxSize)
         defaults.set(clampedHotCornerHitboxSize, forKey: Self.hotCornerHitboxSizeKey)
+        let storedHotCornerCooldown = defaults.object(forKey: Self.hotCornerCooldownKey) as? Double ?? Self.defaultHotCornerCooldown
+        let clampedHotCornerCooldown = Self.clampHotCornerCooldown(storedHotCornerCooldown)
+        defaults.set(clampedHotCornerCooldown, forKey: Self.hotCornerCooldownKey)
         if defaults.object(forKey: Self.hotCornerToggleWhenOpenKey) == nil {
             defaults.set(false, forKey: Self.hotCornerToggleWhenOpenKey)
         }
@@ -2978,6 +3063,15 @@ final class AppStore: ObservableObject {
         if defaults.object(forKey: Self.gestureCloseOnPinchOutKey) == nil {
             defaults.set(false, forKey: Self.gestureCloseOnPinchOutKey)
         }
+        if defaults.object(forKey: Self.gestureSpreadShowsDesktopKey) == nil {
+            defaults.set(false, forKey: Self.gestureSpreadShowsDesktopKey)
+        }
+        if defaults.object(forKey: Self.gestureAcceptEvenSpreadKey) == nil {
+            defaults.set(true, forKey: Self.gestureAcceptEvenSpreadKey)
+        }
+        let storedGestureCooldown = defaults.object(forKey: Self.gestureCooldownKey) as? Double ?? Self.defaultGestureCooldown
+        let clampedGestureCooldown = Self.clampGestureCooldown(storedGestureCooldown)
+        defaults.set(clampedGestureCooldown, forKey: Self.gestureCooldownKey)
         // Keep a one-time migration path from the older tap booleans so users
         // do not lose settings if gesture support remains enabled.
         if defaults.object(forKey: Self.gestureTapActionKey) == nil {
@@ -3073,9 +3167,13 @@ final class AppStore: ObservableObject {
         self.hotCornerTriggerDelay = clampedHotCornerDelay
         self.hotCornerHitboxSize = clampedHotCornerHitboxSize
         self.hotCornerToggleWhenOpen = defaults.object(forKey: Self.hotCornerToggleWhenOpenKey) as? Bool ?? false
+        self.hotCornerCooldown = clampedHotCornerCooldown
         self.hideMenuBar = defaults.object(forKey: Self.hideMenuBarKey) as? Bool ?? false
         self.gestureEnabled = defaults.object(forKey: Self.gestureEnabledKey) as? Bool ?? false
         self.gestureCloseOnPinchOut = defaults.object(forKey: Self.gestureCloseOnPinchOutKey) as? Bool ?? false
+        self.gestureSpreadShowsDesktop = defaults.object(forKey: Self.gestureSpreadShowsDesktopKey) as? Bool ?? false
+        self.gestureAcceptEvenSpread = defaults.object(forKey: Self.gestureAcceptEvenSpreadKey) as? Bool ?? true
+        self.gestureCooldown = clampedGestureCooldown
         self.gestureTapAction = GestureTapAction(rawValue: defaults.string(forKey: Self.gestureTapActionKey) ?? "") ?? .off
         self.gestureFingerCount = GestureFingerCount(rawValue: defaults.integer(forKey: Self.gestureFingerCountKey)) ?? .four
         self.gestureDeviceSelectionMode = GestureDeviceSelectionMode(rawValue: defaults.string(forKey: Self.gestureDeviceSelectionModeKey) ?? "") ?? .automatic

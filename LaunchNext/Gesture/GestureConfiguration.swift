@@ -23,4 +23,10 @@ struct GestureConfiguration: Equatable {
     var tapMaxDuration: TimeInterval = 0.20
     var tapMaxFingerMovement: Double = 0.045
     var tapMaxScaleDeviation: Double = 0.10
+    // An even four-finger spread (all fingers moving outward) also counts as the close gesture.
+    // The thumb-led rule above stays as the other way to close.
+    var acceptEvenSpread: Bool = true
+    var evenSpreadScaleRatio: Double = 1.12
+    var evenSpreadPerFingerRadiusRatio: Double = 1.04
+    var minimumEvenSpreadParticipatingFingerCount: Int = 3
 }

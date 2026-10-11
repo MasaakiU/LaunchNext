@@ -200,6 +200,7 @@ struct GestureStateMachine {
             let currentRadii = radii(for: touches, around: currentCentroid)
             let radialRatios = perFingerRadialRatios(currentRadii: currentRadii, baselineRadii: baselineRadii)
             let inwardFingerCount = radialRatios.filter { $0 <= configuration.openPerFingerRadiusRatio }.count
+            let outwardFingerCount = radialRatios.filter { $0 >= configuration.evenSpreadPerFingerRadiusRatio }.count
             let sortedRadialRatios = radialRatios.sorted()
             let leadingRatio = sortedRadialRatios.last ?? 1
             let supportingRatios = Array(sortedRadialRatios.dropLast())
@@ -218,6 +219,12 @@ struct GestureStateMachine {
                       leadingRatio >= configuration.closeLeadingFingerRadiusRatio,
                       leadingGap >= configuration.minimumCloseLeadingGap,
                       supportingSpread <= configuration.maximumCloseSupportingSpread {
+                action = .close
+            } else if configuration.closeOnPinchOutEnabled,
+                      configuration.acceptEvenSpread,
+                      centroidDrift <= maxDrift,
+                      scaleRatio >= configuration.evenSpreadScaleRatio,
+                      outwardFingerCount >= configuration.minimumEvenSpreadParticipatingFingerCount {
                 action = .close
             } else {
                 action = nil

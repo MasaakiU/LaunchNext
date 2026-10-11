@@ -330,19 +330,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
     }
 
     private func bindHotCornerPreference() {
-        Publishers.CombineLatest4(
-            appStore.$hotCornerEnabled.removeDuplicates(),
-            appStore.$hotCornerPosition.removeDuplicates(),
-            appStore.$hotCornerTriggerDelay.removeDuplicates(),
-            appStore.$hotCornerHitboxSize.removeDuplicates()
+        Publishers.CombineLatest(
+            Publishers.CombineLatest4(
+                appStore.$hotCornerEnabled.removeDuplicates(),
+                appStore.$hotCornerPosition.removeDuplicates(),
+                appStore.$hotCornerTriggerDelay.removeDuplicates(),
+                appStore.$hotCornerHitboxSize.removeDuplicates()
+            ),
+            appStore.$hotCornerCooldown.removeDuplicates()
         )
         .receive(on: RunLoop.main)
-        .sink { [weak self] enabled, position, delay, hitboxSize in
+        .sink { [weak self] combined, cooldown in
+            let (enabled, position, delay, hitboxSize) = combined
             self?.updateHotCornerMonitor(
                 enabled: enabled,
                 position: position,
                 triggerDelay: delay,
-                hitboxSize: hitboxSize
+                hitboxSize: hitboxSize,
+                cooldown: cooldown
             )
         }
         .store(in: &cancellables)
@@ -353,7 +358,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
         // so the monitor can be rebuilt from a single source of truth.
         // If gesture support is removed later, delete this binder together with
         // updateGestureMonitor()/handleGestureTrigger() and the Gesture folder.
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
             Publishers.CombineLatest4(
                 appStore.$gestureEnabled.removeDuplicates(),
                 appStore.$gestureCloseOnPinchOut.removeDuplicates(),
@@ -363,19 +368,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
             Publishers.CombineLatest(
                 appStore.$gestureDeviceSelectionMode.removeDuplicates(),
                 appStore.$gestureSelectedDeviceIDs.removeDuplicates()
+            ),
+            Publishers.CombineLatest3(
+                appStore.$gestureSpreadShowsDesktop.removeDuplicates(),
+                appStore.$gestureAcceptEvenSpread.removeDuplicates(),
+                appStore.$gestureCooldown.removeDuplicates()
             )
         )
         .receive(on: RunLoop.main)
-        .sink { [weak self] combined, deviceSelection in
+        .sink { [weak self] combined, deviceSelection, spreadSettings in
             let (enabled, closeOnPinchOut, tapAction, fingerCount) = combined
             let (deviceSelectionMode, selectedDeviceIDs) = deviceSelection
+            let (spreadShowsDesktop, acceptEvenSpread, cooldown) = spreadSettings
             self?.updateGestureMonitor(
                 enabled: enabled,
                 closeOnPinchOut: closeOnPinchOut,
                 tapAction: tapAction,
                 fingerCount: fingerCount,
                 deviceSelectionMode: deviceSelectionMode,
-                selectedDeviceIDs: selectedDeviceIDs
+                selectedDeviceIDs: selectedDeviceIDs,
+                spreadShowsDesktop: spreadShowsDesktop,
+                acceptEvenSpread: acceptEvenSpread,
+                cooldown: cooldown
             )
         }
         .store(in: &cancellables)
@@ -433,12 +447,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
     private func updateHotCornerMonitor(enabled: Bool,
                                         position: AppStore.HotCornerPosition,
                                         triggerDelay: Double,
-                                        hitboxSize: Double) {
+                                        hitboxSize: Double,
+                                        cooldown: Double) {
         let configuration = HotCornerMonitor.Configuration(
             isEnabled: enabled,
             position: position,
             triggerDelay: triggerDelay,
-            hitboxSize: CGFloat(hitboxSize)
+            hitboxSize: CGFloat(hitboxSize),
+            cooldown: cooldown
         )
 
         if hotCornerMonitor == nil {
@@ -476,16 +492,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
                                       tapAction: AppStore.GestureTapAction,
                                       fingerCount: AppStore.GestureFingerCount,
                                       deviceSelectionMode: GestureDeviceSelectionMode,
-                                      selectedDeviceIDs: [String]) {
+                                      selectedDeviceIDs: [String],
+                                      spreadShowsDesktop: Bool,
+                                      acceptEvenSpread: Bool,
+                                      cooldown: Double) {
         let configuration = GestureMonitor.Configuration(
             isEnabled: enabled || tapAction != .off,
-            closeOnPinchOutEnabled: closeOnPinchOut,
+            // The staged mode needs the spread recognised even while LaunchNext is closed.
+            closeOnPinchOutEnabled: closeOnPinchOut || spreadShowsDesktop,
             tapEnabled: tapAction != .off,
             tapTogglesWindow: tapAction == .toggle,
             deviceSelectionMode: deviceSelectionMode,
             selectedDeviceIDs: selectedDeviceIDs,
             requiredFingerCount: fingerCount.rawValue,
-            minimumOpenParticipatingFingerCount: fingerCount.minimumOpenParticipatingFingerCount
+            minimumOpenParticipatingFingerCount: fingerCount.minimumOpenParticipatingFingerCount,
+            cooldownDuration: cooldown,
+            acceptEvenSpread: acceptEvenSpread
         )
 
         if gestureMonitor == nil {
@@ -508,13 +530,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSGestureR
         guard !isPerformingExternalSystemDrag else { return }
         guard !isAnimatingWindow else { return }
 
+        let staged = appStore.gestureSpreadShowsDesktop && ShowDesktopBridge.isAvailable
         switch action {
         case .open:
             guard !windowIsVisible else { return }
+            if staged, ShowDesktopBridge.isDesktopShown() {
+                // Launchpad style: a pinch first brings the windows back from the desktop.
+                ShowDesktopBridge.toggleShowDesktop()
+                return
+            }
             showWindow()
         case .close:
-            guard windowIsVisible else { return }
-            hideWindow()
+            if windowIsVisible {
+                hideWindow()
+                return
+            }
+            if staged, !ShowDesktopBridge.isDesktopShown() {
+                ShowDesktopBridge.toggleShowDesktop()
+            }
         case .toggle:
             if windowIsVisible {
                 hideWindow()

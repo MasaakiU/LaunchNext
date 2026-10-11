@@ -407,6 +407,20 @@ private var hotCornerTriggerDelayBinding: Binding<Double> {
     )
 }
 
+private var hotCornerCooldownBinding: Binding<Double> {
+    Binding(
+        get: { appStore.hotCornerCooldown },
+        set: { newValue in
+            let clamped = min(max(newValue, AppStore.hotCornerCooldownRange.lowerBound),
+                              AppStore.hotCornerCooldownRange.upperBound)
+            guard appStore.hotCornerCooldown != clamped else { return }
+            DispatchQueue.main.async {
+                appStore.hotCornerCooldown = clamped
+            }
+        }
+    )
+}
+
 private var hotCornerHitboxSizeBinding: Binding<Double> {
     Binding(
         get: { appStore.hotCornerHitboxSize },
@@ -445,6 +459,44 @@ private var gestureEnabledBinding: Binding<Bool> {
             guard appStore.gestureEnabled != newValue else { return }
             DispatchQueue.main.async {
                 appStore.gestureEnabled = newValue
+            }
+        }
+    )
+}
+
+private var gestureSpreadShowsDesktopBinding: Binding<Bool> {
+    Binding(
+        get: { appStore.gestureSpreadShowsDesktop },
+        set: { newValue in
+            guard appStore.gestureSpreadShowsDesktop != newValue else { return }
+            DispatchQueue.main.async {
+                appStore.gestureSpreadShowsDesktop = newValue
+            }
+        }
+    )
+}
+
+private var gestureAcceptEvenSpreadBinding: Binding<Bool> {
+    Binding(
+        get: { appStore.gestureAcceptEvenSpread },
+        set: { newValue in
+            guard appStore.gestureAcceptEvenSpread != newValue else { return }
+            DispatchQueue.main.async {
+                appStore.gestureAcceptEvenSpread = newValue
+            }
+        }
+    )
+}
+
+private var gestureCooldownBinding: Binding<Double> {
+    Binding(
+        get: { appStore.gestureCooldown },
+        set: { newValue in
+            let clamped = min(max(newValue, AppStore.gestureCooldownRange.lowerBound),
+                              AppStore.gestureCooldownRange.upperBound)
+            guard appStore.gestureCooldown != clamped else { return }
+            DispatchQueue.main.async {
+                appStore.gestureCooldown = clamped
             }
         }
     )
@@ -4000,6 +4052,23 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
+                            Text(appStore.localized(.hotCornerCooldownTitle))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(Int((appStore.hotCornerCooldown * 1000).rounded())) ms")
+                                .font(.footnote.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Slider(value: hotCornerCooldownBinding,
+                               in: AppStore.hotCornerCooldownRange,
+                               step: 0.05)
+                        .disabled(!appStore.hotCornerEnabled)
+                        .opacity(appStore.hotCornerEnabled ? 1 : 0.45)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
                             Text(appStore.localized(.hotCornerHitboxSizeTitle))
                                 .foregroundStyle(.secondary)
                             Spacer()
@@ -4099,6 +4168,49 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
                     Toggle("", isOn: gestureCloseOnPinchOutBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
+                }
+                .disabled(!appStore.gestureEnabled)
+                .opacity(appStore.gestureEnabled ? 1 : 0.45)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(appStore.localized(.gestureSpreadShowsDesktopTitle))
+                        Spacer()
+                        Toggle("", isOn: gestureSpreadShowsDesktopBinding)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    Text(appStore.localized(.gestureSpreadShowsDesktopDescription))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .disabled(!appStore.gestureEnabled)
+                .opacity(appStore.gestureEnabled ? 1 : 0.45)
+
+                HStack {
+                    Text(appStore.localized(.gestureAcceptEvenSpreadTitle))
+                    Spacer()
+                    Toggle("", isOn: gestureAcceptEvenSpreadBinding)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                }
+                .disabled(!appStore.gestureEnabled)
+                .opacity(appStore.gestureEnabled ? 1 : 0.45)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(appStore.localized(.gestureCooldownTitle))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(Int((appStore.gestureCooldown * 1000).rounded())) ms")
+                            .font(.footnote.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Slider(value: gestureCooldownBinding,
+                           in: AppStore.gestureCooldownRange,
+                           step: 0.05)
                 }
                 .disabled(!appStore.gestureEnabled)
                 .opacity(appStore.gestureEnabled ? 1 : 0.45)
@@ -5822,11 +5934,15 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
                     keys.insert(AppStore.hotCornerTriggerDelayKey)
                     keys.insert(AppStore.hotCornerHitboxSizeKey)
                     keys.insert(AppStore.hotCornerToggleWhenOpenKey)
+                    keys.insert(AppStore.hotCornerCooldownKey)
                     // Experimental gesture backup keys. Remove these together
                     // with the gesture feature if low-level multitouch support
                     // is dropped later.
                     keys.insert(AppStore.gestureEnabledKey)
                     keys.insert(AppStore.gestureCloseOnPinchOutKey)
+                    keys.insert(AppStore.gestureSpreadShowsDesktopKey)
+                    keys.insert(AppStore.gestureAcceptEvenSpreadKey)
+                    keys.insert(AppStore.gestureCooldownKey)
                     keys.insert(AppStore.gestureTapActionKey)
                     keys.insert(AppStore.gestureFingerCountKey)
                     keys.insert(AppStore.gestureDeviceSelectionModeKey)
