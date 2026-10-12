@@ -490,7 +490,7 @@ final class AppStore: ObservableObject {
     static let dockDragTriggerDistanceRange: ClosedRange<Double> = 8...72
     static let defaultDockDragTriggerDistance: Double = 50
     static let hotCornerTriggerDelayRange: ClosedRange<Double> = 0...1.2
-    static let hotCornerHitboxSizeRange: ClosedRange<Double> = 20...120
+    static let hotCornerHitboxSizeRange: ClosedRange<Double> = 1...120   // 1–3 pt behaves like the system's own corners: the pointer has to be pushed into the corner
     static let defaultHotCornerTriggerDelay: Double = 0.25
     static let hotCornerCooldownRange: ClosedRange<Double> = 0...1.5
     static let defaultHotCornerCooldown: Double = 0

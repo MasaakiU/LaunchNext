@@ -114,7 +114,8 @@ final class HotCornerMonitor {
         let size = max(configuration.hitboxSize, 1)
         for (index, screen) in NSScreen.screens.enumerated() {
             let frame = screen.frame
-            let hitbox = hitboxRect(in: frame, size: size)
+            // Grow by half a point so a pointer pinned exactly on the screen edge (x == maxX, y == maxY) still counts.
+            let hitbox = hitboxRect(in: frame, size: size).insetBy(dx: -0.5, dy: -0.5)
             if hitbox.contains(location) {
                 return "\(screenIdentifier(for: screen, fallbackIndex: index)):\(configuration.position.rawValue)"
             }
