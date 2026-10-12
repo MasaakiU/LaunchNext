@@ -351,6 +351,19 @@ struct LaunchpadView: View {
     /// (below the last row, around the page indicator, inside the grid's insets).
     private func dismissOnBackgroundTap() {
         guard appStore.openFolder == nil, !appStore.isFolderNameEditing, !appStore.isSetting else { return }
+        // The gesture is attached to the hosting view, so it also fires for clicks inside the AppKit grid
+        // (icons, folders, empty slots). The grid handles those itself; opening a folder must not close the window.
+        if let window = AppDelegate.shared?.launchpadWindow, let content = window.contentView {
+            let locationInWindow = NSApp.currentEvent?.locationInWindow
+                ?? window.convertPoint(fromScreen: NSEvent.mouseLocation)
+            var view = content.hitTest(content.convert(locationInWindow, from: nil))
+            while let current = view {
+                if current is CAGridView || current is CAFolderGridView || current is CAFolderPresentationHost || current is CAFolderBackdropView {
+                    return
+                }
+                view = current.superview
+            }
+        }
         AppDelegate.shared?.hideWindow()
     }
 
